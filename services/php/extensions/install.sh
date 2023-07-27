@@ -15,7 +15,7 @@ echo
 
 
 if [ "${PHP_EXTENSIONS}" != "" ]; then
-    apk --update add --no-cache --virtual .build-deps autoconf g++ libtool make curl-dev gettext-dev linux-headers
+    apk --update add --no-cache --virtual .build-deps autoconf gcc g++ libtool make curl-dev gettext-dev linux-headers
 fi
 
 
@@ -400,6 +400,16 @@ if [[ -z "${EXTENSIONS##*,protobuf,*}" ]]; then
     fi
 fi
 
+if [[ -z "${EXTENSIONS##*,grpc,*}" ]]; then
+    isPhpVersionGreaterOrEqual 7 0
+    if [[ "$?" = "1" ]]; then
+        echo "---------- Install grpc ----------"
+        printf "\n" | apk add grpc
+    else
+        echo "yar requires PHP >= 7.0.0, installed version is ${PHP_VERSION}"
+    fi
+fi
+
 if [[ -z "${EXTENSIONS##*,yac,*}" ]]; then
     isPhpVersionGreaterOrEqual 7 0
     if [[ "$?" = "1" ]]; then
@@ -615,7 +625,16 @@ if [[ -z "${EXTENSIONS##*,swoole,*}" ]]; then
     isPhpVersionGreaterOrEqual 7 0
 
     if [[ "$?" = "1" ]]; then
-        installExtensionFromTgz swoole-4.8.11 --enable-openssl
+        installExtensionFromTgz swoole-4.8.12 --enable-openssl --enable-http2 --enable-sockets --enable-swoole-curl
+
+        # 还需要执行以下代码
+        # docker-php-ext-enable swoole
+        # 关闭短域名 空行为了换行
+        # 这个路径是PHP官方提供的扩展配置路径，只要自己没有修改过，那就是这个目录
+        cat <<EOF >> /usr/local/etc/php/conf.d/docker-php-ext-swoole.ini
+
+swoole.use_shortname = 'Off'
+EOF
     else
         installExtensionFromTgz swoole-2.0.11
     fi

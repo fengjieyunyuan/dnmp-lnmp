@@ -15,7 +15,7 @@ echo
 
 
 if [ "${PHP_EXTENSIONS}" != "" ]; then
-    apk --update add --no-cache --virtual .build-deps autoconf g++ libtool make curl-dev gettext-dev linux-headers
+    apk --update add --no-cache --virtual .build-deps autoconf gcc g++ libtool make curl-dev gettext-dev linux-headers
 fi
 
 
@@ -595,9 +595,18 @@ if [[ -z "${EXTENSIONS##*,swoole,*}" ]]; then
     apk add --no-cache libstdc++
     isPhpVersionGreaterOrEqual 8 0
     if [[ "$?" = "1" ]]; then
-        installExtensionFromTgz swoole-5.0.2 --enable-openssl --enable-http2
+        installExtensionFromTgz swoole-5.0.2 --enable-openssl --enable-http2 --enable-sockets --enable-swoole-curl
+        # 还需要执行以下代码
+        # docker-php-ext-enable swoole
+        # 关闭短域名 空行为了换行
+        # 这个路径是PHP官方提供的扩展配置路径，只要自己没有修改过，那就是这个目录
+        cat <<EOF >> /usr/local/etc/php/conf.d/docker-php-ext-swoole.ini
+
+swoole.use_shortname = 'Off'
+EOF
     fi
 fi
+
 
 if [[ -z "${EXTENSIONS##*,zip,*}" ]]; then
     echo "---------- Install zip ----------"
